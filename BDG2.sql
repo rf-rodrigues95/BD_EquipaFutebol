@@ -10,13 +10,22 @@ DROP TABLE Joga_Posicao cascade constraints;
 DROP TABLE Morada cascade constraints;
 DROP TABLE TipoT cascade constraints;
 DROP TABLE Jogo cascade constraints;
-DROP TABLE TransferenciaID cascade constraints; /* isto é alguma coisa?*/
+DROP TABLE Transferencias cascade constraints; 
 DROP TABLE Transferencia_equipa cascade constraints;
 /*O que faltava adicionar*/
+DROP TABLE CONVOCATORIA CASCADE CONSTRAINTS;
 DROP TABLE Estadio cascade constraints;
 DROP TABLE Equipas cascade constraints;
 DROP TABLE Acoes cascade constraints;
 DROP TABLE TipoAcao cascade constraints;
+DROP SEQUENCE seq_id;
+DROP SEQUENCE seq_idEstadio;
+DROP SEQUENCE seq_idEquipa;
+DROP SEQUENCE seq_idPos;
+DROP SEQUENCE seq_idAcao;
+DROP TRIGGER PosicaoPK;
+DROP TRIGGER EquipaPK;
+DROP TRIGGER EstadioPK;
 
 
 CREATE SEQUENCE seq_id
@@ -77,7 +86,7 @@ CREATE TABLE Jogador (
 
 
 CREATE TABLE Posicao (
-	PosicaoID NUMBER DEFAULT seq_idPos.NEXTVAL,
+	PosicaoID NUMBER /*DEFAULT seq_idPos.NEXTVAL*/,
 	Descricao varchar(250),
 
 	CONSTRAINT posicao_pk PRIMARY KEY (PosicaoID)
@@ -95,17 +104,17 @@ CREATE TABLE Joga_Posicao (
 
 
 CREATE TABLE Estadio (
-	EstadioID NUMBER DEFAULT seq_idEstadio.NEXTVAL,
+	EstadioID NUMBER,
 	NomeEstadio varchar(250),
     Localidade varchar(250),
 
    /* CONSTRAINT fk_estadio_localidade FOREIGN KEY (lOCALIDADE) REFERENCES MORADA (LOCALIDADE), */
-	CONSTRAINT estadio_pk PRIMARY KEY (EstadioID)
-
+	CONSTRAINT estadio_pk PRIMARY KEY (EstadioID),
+    CONSTRAINT fk_estadio_localidade FOREIGN KEY (lOCALIDADE) REFERENCES MORADA (LOCALIDADE)
 );
 
 CREATE TABLE Equipas (
-	EquipaID NUMBER DEFAULT seq_idEquipa.NEXTVAL,
+	EquipaID NUMBER,
 	NomeEquipa varchar(250),
 	PosicaoTabela NUMBER,
 	EstadioID NUMBER,
@@ -204,9 +213,42 @@ CREATE TABLE Transferencia_equipa(
 	CONSTRAINT transferencia_equipa_pk PRIMARY KEY (EquipaID, TransferenciaID)
 );
 
+/*Create Triggers*/
+
+CREATE TRIGGER PosicaoPK
+BEFORE INSERT ON Posicao
+FOR EACH ROW
+DECLARE
+    PosicaoID NUMBER;
+BEGIN
+    SELECT seq_idPos.NEXTVAL INTO PosicaoID FROM dual;
+    :new.PosicaoID := PosicaoID;
+END;
+/
+    
+CREATE TRIGGER EquipaPK
+BEFORE INSERT ON Equipas
+FOR EACH ROW
+DECLARE
+    EquipaID NUMBER;
+BEGIN
+    SELECT seq_idEquipa.NEXTVAL INTO EquipaID FROM dual;
+    :new.EquipaID := EquipaID;
+END;
+/
+
+CREATE TRIGGER EstadioPK
+BEFORE INSERT ON Estadio
+FOR EACH ROW
+DECLARE
+    EstadioID NUMBER;
+BEGIN
+    SELECT seq_idEstadio.NEXTVAL INTO EstadioID FROM dual;
+    :new.EstadioID := EstadioID;
+END;
+/
 
 /*INSERT NEW DATA*/
-
 
 /*MORADA*/
 
@@ -215,7 +257,7 @@ VALUES ('Almada', 'Portugal');
 commit;
 
 INSERT INTO Morada (Localidade, Pais)
-VALUES ('Fern�o Ferro', 'Portugal');
+VALUES ('Fernao Ferro', 'Portugal');
 commit;
 
 INSERT INTO Morada (Localidade, Pais)
@@ -258,7 +300,7 @@ INSERT INTO Morada (Localidade, Pais)
 VALUES ('Manchester', 'Inglaterra');
 commit;
 
-
+SELECT * FROM MORADA;
 /*Pessoas*/
 
 INSERT INTO Pessoas (NIF,Nome, Salario, DataInicioC, DataFimC, DataNascimento, Nacionalidade, Localidade)
@@ -266,17 +308,15 @@ VALUES (234567890,'Jorge Jesus', 300000000, '2023-01-01', '2023-12-31', '1954-07
 commit;
 
 INSERT INTO Pessoas (NIF,Nome, Salario, DataInicioC, DataFimC, DataNascimento, Nacionalidade, Localidade)
-VALUES (234567890,'Pep Guardiola', 300000000, '2023-01-01', '2023-12-31', '1971-01-18', 'Espanhola', 'Manchester');
+VALUES (234567891,'Pep Guardiola', 300000000, '2023-01-01', '2023-12-31', '1971-01-18', 'Espanhola', 'Manchester');
 commit;
 
-/*DEVE DAR ERRO*/
+select * from pessoas;
+
+/*DEVE DAR ERRO
 INSERT INTO Pessoas (NIF,Nome, Salario, DataInicioC, DataFimC, DataNascimento, Nacionalidade, Localidade)
 VALUES (234567891,'Cristiano Ronaldo', 3000000000, '2023-01-01', '2023-12-31', '1985-02-05', 'Portuguesa', 'Funchal');
-commit;
-
-INSERT INTO Pessoas (NIF,Nome, Salario, DataInicioC, DataFimC, DataNascimento, Nacionalidade, Localidade)
-VALUES (234567890,'Jorge Jesus', 300000000, '2023-01-01', '2023-12-31', '1954-07-24', 'Portuguesa', 'Almada');
-commit;
+commit;*/
 
 /*NOVA MORADA*/
 INSERT INTO Morada (Localidade, Pais)
@@ -284,7 +324,7 @@ VALUES ('Funchal', 'Portugal');
 commit;
 /*AGORA JA FUNCIONA*/
 INSERT INTO Pessoas (NIF,Nome, Salario, DataInicioC, DataFimC, DataNascimento, Nacionalidade, Localidade)
-VALUES (234567891,'Cristiano Ronaldo', 3000000000, '2023-01-01', '2023-12-31', '1985-02-05', 'Portuguesa', 'Funchal');
+VALUES (234567893,'Cristiano Ronaldo', 3000000000, '2023-01-01', '2023-12-31', '1985-02-05', 'Portuguesa', 'Funchal');
 commit;
 
 INSERT INTO Pessoas (NIF,Nome, Salario, DataInicioC, DataFimC, DataNascimento, Nacionalidade, Localidade)
@@ -311,7 +351,7 @@ commit;
 
 INSERT INTO Pessoas (NIF,Nome, Salario, DataInicioC, DataFimC, DataNascimento, Nacionalidade, Localidade)
 VALUES (225805900,'Augusto Moreira', 15000000, TO_DATE('2023-09-20', 'YYYY-MM-DD'), TO_DATE('2027-09-20', 'YYYY-MM-DD'), 
-TO_DATE('1993-06-25', 'YYYY-MM-DD'), 'Portuguesa', 'Fern�o Ferro');
+TO_DATE('1993-06-25', 'YYYY-MM-DD'), 'Portuguesa', 'Fernao Ferro');
 commit;
 
 INSERT INTO Pessoas (NIF,Nome, Salario, DataInicioC, DataFimC, DataNascimento, Nacionalidade, Localidade)
@@ -334,13 +374,14 @@ VALUES (206865113,'Gon�alo Ramos', 999000000, TO_DATE('2021-12-16', 'YYYY-MM-D
 TO_DATE('1997-12-17', 'YYYY-MM-DD'), 'Portuguesa', 'Lisboa');
 commit;
 
-select * from pessoas;
+/*select * from pessoas;*/
  
 /*JOGADOR*/
 
 INSERT INTO Jogador (NIF)
 VALUES (200800123);
 commit;
+select * from jogador;
 
 INSERT INTO Jogador (NIF)
 VALUES (220803192);
@@ -377,37 +418,37 @@ commit;
 INSERT INTO Jogador (NIF)
 VALUES (234567891);
 commit;
-
+select * from jogador;
 /*TREINADOR*/
 
 INSERT INTO TREINADORES (NIF,CARGO)
 VALUES (234567890,'Principal');
+commit;
 
 INSERT INTO TREINADORES (NIF,CARGO)
-VALUES (234567888,'Adjunto');
+VALUES (234567891,'Adjunto');
 commit;
 
-DELETE FROM Jogador;
-commit;
-SELECT * FROM JOGADOR;
+
+/*SELECT * FROM JOGADOR;
 SELECT * FROM TREINADORES;
 
 
 select * from jogador 
-natural join pessoas;
+natural join pessoas;*/
 
 /*ESTADIOS*/
 
-INSERT INTO Estadio(EstadioID, NomeEstadio, Localidade)
-VALUES (seq_idEstadio.NEXTVAL, 'Estadio da Luz', 'Lisboa');
+INSERT INTO Estadio(NomeEstadio, Localidade)
+VALUES ('Estadio da Luz', 'Lisboa');
 commit;
 
-INSERT INTO Estadio(EstadioID, NomeEstadio, Localidade)
-VALUES (seq_idEstadio.NEXTVAL, 'Estádio José Alvalade', 'Lisboa');
+INSERT INTO Estadio(NomeEstadio, Localidade)
+VALUES ('Estádio José Alvalade', 'Lisboa');
 commit;
 
-INSERT INTO Estadio(EstadioID, NomeEstadio, Localidade)
-VALUES (seq_idEstadio.NEXTVAL, 'Estádio do Dragão', 'Porto');
+INSERT INTO Estadio(NomeEstadio, Localidade)
+VALUES ('Estádio do Dragão', 'Porto');
 commit;
 
 
@@ -419,77 +460,78 @@ ALTER SEQUENCE seq_idEstadio RESTART;*/
 
 /*EQUIPA*/
 
-INSERT INTO Equipas (EquipaID , NomeEquipa, PosicaoTabela, EstadioID)
-VALUES (seq_idEquipa.NEXTVAL,'Benfica', '1', '1');
+INSERT INTO Equipas (NomeEquipa, PosicaoTabela, EstadioID)
+VALUES ('Benfica', 1, 1);
 commit;
 
-INSERT INTO Equipas (EquipaID , NomeEquipa, PosicaoTabela, EstadioID)
-VALUES (seq_idEquipa.NEXTVAL,'Sporting', '2', '2');
+INSERT INTO Equipas (NomeEquipa, PosicaoTabela, EstadioID)
+VALUES ('Sporting', 2 , 2);
 commit;
 
-INSERT INTO Equipas (EquipaID , NomeEquipa, PosicaoTabela, EstadioID)
-VALUES (seq_idEquipa.NEXTVAL,'Porto', '3', '3');
+INSERT INTO Equipas (NomeEquipa, PosicaoTabela, EstadioID)
+VALUES ('Porto', 3, 3);
 commit;
 
 /*Posicoes*/
 
-INSERT INTO Posicao(PosicaoID, Descricao)
-VALUES (seq_idPos.NEXTVAL, 'Guarda Redes');
+INSERT INTO Posicao(Descricao)
+VALUES ('Guarda Redes');
 commit;
 
-INSERT INTO Posicao(PosicaoID, Descricao)
-VALUES (seq_idPos.NEXTVAL, 'Defesa Lateral Esquerdo');
+INSERT INTO Posicao(Descricao)
+VALUES ('Defesa Lateral Esquerdo');
 commit;
 
-INSERT INTO Posicao(PosicaoID, Descricao)
-VALUES (seq_idPos.NEXTVAL, 'Defesa Lateral Direito');
+INSERT INTO Posicao(Descricao)
+VALUES ('Defesa Lateral Direito');
 commit;
 
-INSERT INTO Posicao(PosicaoID, Descricao)
-VALUES (seq_idPos.NEXTVAL, 'Defesa Central');
+INSERT INTO Posicao(Descricao)
+VALUES ('Defesa Central');
 commit;
 
-INSERT INTO Posicao(PosicaoID, Descricao)
-VALUES (seq_idPos.NEXTVAL, 'Médio Defensivo');
+INSERT INTO Posicao(Descricao)
+VALUES ('Médio Defensivo');
 commit;
 
-INSERT INTO Posicao(PosicaoID, Descricao)
-VALUES (seq_idPos.NEXTVAL, 'Médio Centro');
+INSERT INTO Posicao(Descricao)
+VALUES ('Médio Centro');
 commit;
 
-INSERT INTO Posicao(PosicaoID, Descricao)
-VALUES (seq_idPos.NEXTVAL, 'Meia-atacante');
+INSERT INTO Posicao(Descricao)
+VALUES ('Meia-atacante');
 commit;
 
-INSERT INTO Posicao(PosicaoID, Descricao)
-VALUES (seq_idPos.NEXTVAL, 'Meio-campista Esquerdo');
+INSERT INTO Posicao(Descricao)
+VALUES ('Meio-campista Esquerdo');
 commit;
 
-INSERT INTO Posicao(PosicaoID, Descricao)
-VALUES (seq_idPos.NEXTVAL, 'Meio-campista Direito');
+INSERT INTO Posicao(Descricao)
+VALUES ('Meio-campista Direito');
 commit;
 
-INSERT INTO Posicao(PosicaoID, Descricao)
-VALUES (seq_idPos.NEXTVAL, 'Falso 9');
+INSERT INTO Posicao(Descricao)
+VALUES ('Falso 9');
 commit;
 
-INSERT INTO Posicao(PosicaoID, Descricao)
-VALUES (seq_idPos.NEXTVAL, 'Extremo Esquerdo');
+INSERT INTO Posicao(Descricao)
+VALUES ('Extremo Esquerdo');
 commit;
 
-INSERT INTO Posicao(PosicaoID, Descricao)
-VALUES (seq_idPos.NEXTVAL, 'Extremo Direito');
+INSERT INTO Posicao(Descricao)
+VALUES ('Extremo Direito');
 commit;
 
-INSERT INTO Posicao(PosicaoID, Descricao)
-VALUES (seq_idPos.NEXTVAL, 'Ponta de Lança');
+INSERT INTO Posicao(Descricao)
+VALUES ('Ponta de Lança');
 commit;
 
 /*Posicao do jogador*/
-/*so para testar se ta bom, ex do Ronaldo*/
+/*so para testar se ta bom, ex do Ronaldo
 INSERT INTO Joga_Posicao(PosicaoID, NIF)
 VALUES('13', 234567891);
 commit;
+*/
 
 /*TipoAcoes*/
 
@@ -537,30 +579,35 @@ commit;
 INSERT INTO TipoAcao(TipoAcaoID, Descricao)
 VALUES(seq_idAcao.NEXTVAL, 'Posse de Bola');
 commit;
-
+/*Jogo*/
+INSERT INTO JOGO (Hora, DataJogo,Resultado,Casa ,EquipaID)
+VALUES (2000,'2023-05-20','10-0',1,1);
+COMMIT;
 /*Convocatoria*/
 /*Exemplo para ver se funciona, Ronaldo jogou 60 minutos */
 INSERT INTO Convocatoria(Hora, DataJogo, EquipaID, NIF, MinutosJogados)
-VALUES(2000, '2023-05-20', 1, 234567891, 60);
+VALUES(2000, '2023-05-20', 1, 200800123, 60);
 commit;
 
 /*Acoes*/
 /*Exemplo para ver se funciona, Ronaldo marcou golo pelo benfica no minuto 32*/
 
 INSERT INTO Acoes(Hora, DataJogo, EquipaID, NIF, Minuto, TipoAcaoID)
-VALUES(2000, '2023-05-20', 1, 234567891, 32, 1);
+VALUES(2000, '2023-05-20', 1, 200800123, 32, 1);
 commit;
 
 
-ALTER TABLE estadio
-ADD CONSTRAINT fk_estadio_localidade FOREIGN KEY (lOCALIDADE) REFERENCES MORADA (LOCALIDADE);
-
-commit;
-
-
-
-
-
+SELECT * FROM JOGADOR;
+SELECT * FROM EQUIPAS;
+SELECT * FROM JOGO;
+SELECT * FROM CONVOCATORIA;
+SELECT * FROM Acoes;
+SELECT * FROM POSICAO;
+SELECT * FROM ESTADIO;
+/*
+TRIGGER:
+-SEMPRE QUE INSERIR UMA ACAO VERIFICAR SE O MINUTO DA ACAO É INFERIOR OU IGUAL AOS MINUTOS JOGADOS PELO JOGADOR
+*/
 
 
 
