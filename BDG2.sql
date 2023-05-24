@@ -1,614 +1,753 @@
 
+Table PESSOAS dropped.
 
-/*O jogo so deve ter 90 minutos*/
-
-DROP TABLE Pessoas cascade constraints;
-DROP TABLE Treinadores cascade constraints;
-DROP TABLE Jogador cascade constraints;
-DROP TABLE Posicao cascade constraints;
-DROP TABLE Joga_Posicao cascade constraints;
-DROP TABLE Morada cascade constraints;
-DROP TABLE TipoT cascade constraints;
-DROP TABLE Jogo cascade constraints;
-DROP TABLE Transferencias cascade constraints; 
-DROP TABLE Transferencia_equipa cascade constraints;
-/*O que faltava adicionar*/
-DROP TABLE CONVOCATORIA CASCADE CONSTRAINTS;
-DROP TABLE Estadio cascade constraints;
-DROP TABLE Equipas cascade constraints;
-DROP TABLE Acoes cascade constraints;
-DROP TABLE TipoAcao cascade constraints;
-DROP SEQUENCE seq_id;
-DROP SEQUENCE seq_idEstadio;
-DROP SEQUENCE seq_idEquipa;
-DROP SEQUENCE seq_idPos;
-DROP SEQUENCE seq_idAcao;
-DROP TRIGGER PosicaoPK;
-DROP TRIGGER EquipaPK;
-DROP TRIGGER EstadioPK;
-
-
-CREATE SEQUENCE seq_id
-  START WITH 1
-  INCREMENT BY 1;
-  
-CREATE SEQUENCE seq_idEstadio
-  START WITH 1
-  INCREMENT BY 1; 
-  
-CREATE SEQUENCE seq_idEquipa
-  START WITH 1
-  INCREMENT BY 1;  
-  
-CREATE SEQUENCE seq_idPos
-  START WITH 1
-  INCREMENT BY 1;  
-  
-CREATE SEQUENCE seq_idAcao
-  START WITH 1
-  INCREMENT BY 1;    
-  
-CREATE TABLE Morada (
-	Localidade varchar(250),
-	Pais varchar(250),
-    
-    CONSTRAINT morada_pk PRIMARY KEY (Localidade)
-);
-
-CREATE TABLE Pessoas (
-	NIF NUMBER,
-	Nome varchar(250),
-	Salario NUMBER,
-	DataInicioC DATE NOT NULL,
-	DataFimC DATE NOT NULL,
-	DataNascimento DATE NOT NULL,
-	Nacionalidade varchar(250),
-	Localidade varchar(250),
-
-	CONSTRAINT pessoas_pk PRIMARY KEY (NIF),
-    CONSTRAINT morada_pessoas_fk FOREIGN KEY (lOCALIDADE) REFERENCES MORADA (LOCALIDADE)
-);
-
-CREATE TABLE Treinadores (
-	NIF NUMBER,
-	Cargo varchar(250),
-	CONSTRAINT fk_Treinadores_Pessoa FOREIGN KEY (NIF) REFERENCES Pessoas (NIF),	
-	CONSTRAINT treinadores_pk PRIMARY KEY (NIF)
-
-);
-
-CREATE TABLE Jogador (
-	NIF NUMBER,
-	CONSTRAINT fk_jogadores_Pessoa FOREIGN KEY (NIF) REFERENCES Pessoas (NIF),	
-	CONSTRAINT jogador_pk PRIMARY KEY (NIF)
-);
-
-
-
-CREATE TABLE Posicao (
-	PosicaoID NUMBER /*DEFAULT seq_idPos.NEXTVAL*/,
-	Descricao varchar(250),
-
-	CONSTRAINT posicao_pk PRIMARY KEY (PosicaoID)
-);
-
-CREATE TABLE Joga_Posicao (
-	PosicaoID NUMBER,
-	NIF NUMBER,
-
-	CONSTRAINT fk_jogadores_joga FOREIGN KEY (NIF) REFERENCES Jogador (NIF),		
-	CONSTRAINT fk_posicao_joga FOREIGN KEY (PosicaoID) REFERENCES Posicao (PosicaoID),	
-	CONSTRAINT joga_posicao_pk PRIMARY KEY (NIF,PosicaoID)
-);
-
-
-
-CREATE TABLE Estadio (
-	EstadioID NUMBER,
-	NomeEstadio varchar(250),
-    Localidade varchar(250),
-
-   /* CONSTRAINT fk_estadio_localidade FOREIGN KEY (lOCALIDADE) REFERENCES MORADA (LOCALIDADE), */
-	CONSTRAINT estadio_pk PRIMARY KEY (EstadioID),
-    CONSTRAINT fk_estadio_localidade FOREIGN KEY (lOCALIDADE) REFERENCES MORADA (LOCALIDADE)
-);
-
-CREATE TABLE Equipas (
-	EquipaID NUMBER,
-	NomeEquipa varchar(250),
-	PosicaoTabela NUMBER,
-	EstadioID NUMBER,
-
-	CONSTRAINT equipas_pk PRIMARY KEY (EquipaID),
-	CONSTRAINT fk_EstadioID FOREIGN KEY (EstadioID) REFERENCES Estadio (EstadioID)	
-
-);
-
-CREATE TABLE Jogo (
-	/*In Oracle SQL don't exist a data type for hours*/
-	Hora NUMBER, 
-	DataJogo DATE NOT NULL,	
-	Resultado varchar(10),
-	Casa NUMBER(1),
-	EquipaID NUMBER,
-	/*verify if Casa value is either 1 or 0*/
-	CONSTRAINT ck_jogo_casa CHECK (Casa IN (1,0)),
-	
-	CONSTRAINT fk_equipa_jogo FOREIGN KEY (EquipaID) REFERENCES Equipas (EquipaID),	
-
-	/*Is really necessary have the hour as a key? Is not like the same two teams have two games in a same day.*/
-	CONSTRAINT jogo_pk PRIMARY KEY (Hora,DataJogo,EquipaID)
-);
-
-CREATE TABLE Convocatoria (
-	Hora NUMBER,
-	DataJogo DATE NOT NULL,
-	EquipaID NUMBER,
-	NIF NUMBER,
-	MinutosJogados NUMBER, /*deve ser entre 0 e 90*/
-    /*verify if MinutosJogados value is between 0  and 90*/
-	CONSTRAINT ck_convocatoria_Minutos CHECK (MinutosJogados BETWEEN 0 AND 90),
-
-	CONSTRAINT fk_convocatoria_jogo FOREIGN KEY (Hora,DataJogo,EquipaID) REFERENCES Jogo (Hora,DataJogo,EquipaID),	
-
-	CONSTRAINT fk_convocatoria_jogador FOREIGN KEY (NIF) REFERENCES Jogador (NIF),	
-
-	CONSTRAINT convocatoria_pk PRIMARY KEY (NIF,Hora,DataJogo,EquipaID)
-);
-
-CREATE TABLE TipoAcao (
-	TipoAcaoID NUMBER DEFAULT seq_idAcao.NEXTVAL,
-	Descricao varchar(250),
-
-	CONSTRAINT tipoAcao_pk PRIMARY KEY (TipoAcaoID)
- );
-
-
- CREATE TABLE Acoes (
-	Hora NUMBER,
-	DataJogo DATE NOT NULL,
-	EquipaID NUMBER,
-	NIF NUMBER,
-	Minuto NUMBER, /*deve ser entre 0 e 90*/
-	TipoAcaoID NUMBER,
-     /*verify if MinutosJogados value is between 0  and 90*/
-	CONSTRAINT ck_acoes_Minuto CHECK (Minuto BETWEEN 0 AND 90),
-
-	CONSTRAINT fk_Acoes_convocatoria FOREIGN KEY (NIF,Hora,DataJogo,EquipaID) REFERENCES Convocatoria (NIF,Hora,DataJogo,EquipaID),	
-
-	CONSTRAINT fk_acoes_tipo FOREIGN KEY (TipoAcaoID) REFERENCES TipoAcao (TipoAcaoID),	
-
-	CONSTRAINT Acoes_pk PRIMARY KEY (NIF,Hora,DataJogo,EquipaID,Minuto)
- );
-
-CREATE TABLE TipoT (
-	TipoTID NUMBER DEFAULT seq_id.NEXTVAL,
-	DescricaoT varchar(250),
-
-	CONSTRAINT tipot_pk PRIMARY KEY (TipoTID)
- );
- 
-CREATE TABLE Transferencias (
-	TransferenciaID NUMBER DEFAULT seq_id.NEXTVAL,
-	Valor NUMBER,
-	DataT DATE NOT NULL,
-	NIF NUMBER,
-	TipoTID NUMBER,
-	
-	CONSTRAINT fk_transferencias_tipo FOREIGN KEY (TipoTID) REFERENCES TipoT (TipoTID),	
-    CONSTRAINT fk_transferencia_nif FOREIGN KEY (NIF) REFERENCES Jogador (NIF),
-    
-	CONSTRAINT transferencias_pk PRIMARY KEY (TransferenciaID)
- );
-
-CREATE TABLE Transferencia_equipa(
-	EquipaID NUMBER,
-	TransferenciaID NUMBER,
-    NIF NUMBER,
-
-	CONSTRAINT fk_transferencia_te FOREIGN KEY (TransferenciaID) REFERENCES Transferencias (TransferenciaID),	
-
-	CONSTRAINT fk_equipa_te FOREIGN KEY (EquipaID) REFERENCES Equipas (EquipaID),	
-
-	CONSTRAINT transferencia_equipa_pk PRIMARY KEY (EquipaID, TransferenciaID)
-);
-
-/*Create Triggers*/
-
-CREATE TRIGGER PosicaoPK
-BEFORE INSERT ON Posicao
-FOR EACH ROW
-DECLARE
-    PosicaoID NUMBER;
-BEGIN
-    SELECT seq_idPos.NEXTVAL INTO PosicaoID FROM dual;
-    :new.PosicaoID := PosicaoID;
-END;
-/
-    
-CREATE TRIGGER EquipaPK
-BEFORE INSERT ON Equipas
-FOR EACH ROW
-DECLARE
-    EquipaID NUMBER;
-BEGIN
-    SELECT seq_idEquipa.NEXTVAL INTO EquipaID FROM dual;
-    :new.EquipaID := EquipaID;
-END;
-/
-
-CREATE TRIGGER EstadioPK
-BEFORE INSERT ON Estadio
-FOR EACH ROW
-DECLARE
-    EstadioID NUMBER;
-BEGIN
-    SELECT seq_idEstadio.NEXTVAL INTO EstadioID FROM dual;
-    :new.EstadioID := EstadioID;
-END;
-/
-
-/*INSERT NEW DATA*/
-
-/*MORADA*/
-
-INSERT INTO Morada (Localidade, Pais)
-VALUES ('Almada', 'Portugal');
-commit;
-
-INSERT INTO Morada (Localidade, Pais)
-VALUES ('Fernao Ferro', 'Portugal');
-commit;
-
-INSERT INTO Morada (Localidade, Pais)
-VALUES ('Braga', 'Portugal');
-commit;
-
-INSERT INTO Morada (Localidade, Pais)
-VALUES ('Seixal', 'Portugal');
-commit;
-
-INSERT INTO Morada (Localidade, Pais)
-VALUES ('Amora', 'Portugal');
-commit;
-
-INSERT INTO Morada (Localidade, Pais)
-VALUES ('Lisboa', 'Portugal');
-commit;
-
-INSERT INTO Morada (Localidade, Pais)
-VALUES ('Porto', 'Portugal');
-commit;
-
-INSERT INTO Morada (Localidade, Pais)
-VALUES ('Mirandela', 'Portugal');
-commit;
-
-INSERT INTO Morada (Localidade, Pais)
-VALUES ('Algarve', 'Portugal');
-commit;
-
-INSERT INTO Morada (Localidade, Pais)
-VALUES ('Saint Petersburg', 'Russia');
-commit;
-
-INSERT INTO Morada (Localidade, Pais)
-VALUES ('Faro', 'Portugal');
-commit;
-
-INSERT INTO Morada (Localidade, Pais)
-VALUES ('Manchester', 'Inglaterra');
-commit;
-
-SELECT * FROM MORADA;
-/*Pessoas*/
-
-INSERT INTO Pessoas (NIF,Nome, Salario, DataInicioC, DataFimC, DataNascimento, Nacionalidade, Localidade)
-VALUES (234567890,'Jorge Jesus', 300000000, '2023-01-01', '2023-12-31', '1954-07-24', 'Portuguesa', 'Almada');
-commit;
-
-INSERT INTO Pessoas (NIF,Nome, Salario, DataInicioC, DataFimC, DataNascimento, Nacionalidade, Localidade)
-VALUES (234567891,'Pep Guardiola', 300000000, '2023-01-01', '2023-12-31', '1971-01-18', 'Espanhola', 'Manchester');
-commit;
-
-select * from pessoas;
-
-/*DEVE DAR ERRO
-INSERT INTO Pessoas (NIF,Nome, Salario, DataInicioC, DataFimC, DataNascimento, Nacionalidade, Localidade)
-VALUES (234567891,'Cristiano Ronaldo', 3000000000, '2023-01-01', '2023-12-31', '1985-02-05', 'Portuguesa', 'Funchal');
-commit;*/
-
-/*NOVA MORADA*/
-INSERT INTO Morada (Localidade, Pais)
-VALUES ('Funchal', 'Portugal');
-commit;
-/*AGORA JA FUNCIONA*/
-INSERT INTO Pessoas (NIF,Nome, Salario, DataInicioC, DataFimC, DataNascimento, Nacionalidade, Localidade)
-VALUES (234567893,'Cristiano Ronaldo', 3000000000, '2023-01-01', '2023-12-31', '1985-02-05', 'Portuguesa', 'Funchal');
-commit;
-
-INSERT INTO Pessoas (NIF,Nome, Salario, DataInicioC, DataFimC, DataNascimento, Nacionalidade, Localidade)
-VALUES (200800123,'Francisco Almeida', 60000000, TO_DATE('2023-06-23','YYYY-MM-DD'), TO_DATE('2025-06-23', 'YYYY-MM-DD'),
-TO_DATE('1997-04-16', 'YYYY-MM-DD'), 'Portuguesa', 'Seixal');
-commit;
-
-select * from pessoas;
-
-INSERT INTO Pessoas (NIF,Nome, Salario, DataInicioC, DataFimC, DataNascimento, Nacionalidade, Localidade)
-VALUES (220803192,'Tiago Monteiro', 75000000, TO_DATE('2021-09-16', 'YYYY-MM-DD'), TO_DATE('2025-09-16', 'YYYY-MM-DD'),
-TO_DATE('1996-03-20', 'YYYY-MM-DD'), 'Portuguesa', 'Amora');
-commit;
-
-INSERT INTO Pessoas (NIF,Nome, Salario, DataInicioC, DataFimC, DataNascimento, Nacionalidade, Localidade)
-VALUES (220805128,'Nuno Fernandes', 45000000, TO_DATE('2022-07-06', 'YYYY-MM-DD'), TO_DATE('2026-07-06', 'YYYY-MM-DD'),
-TO_DATE('2000-01-02', 'YYYY-MM-DD'), 'Portuguesa', 'Braga');
-commit;
-
-INSERT INTO Pessoas (NIF,Nome, Salario, DataInicioC, DataFimC, DataNascimento, Nacionalidade, Localidade)
-VALUES (209815158,'S�rgio Fernandes', 65000000, TO_DATE('2021-09-04', 'YYYY-MM-DD'), TO_DATE('2025-09-04', 'YYYY-MM-DD'),
-TO_DATE('1996-04-08', 'YYYY-MM-DD'), 'Portuguesa', 'Lisboa');
-commit;
-
-INSERT INTO Pessoas (NIF,Nome, Salario, DataInicioC, DataFimC, DataNascimento, Nacionalidade, Localidade)
-VALUES (225805900,'Augusto Moreira', 15000000, TO_DATE('2023-09-20', 'YYYY-MM-DD'), TO_DATE('2027-09-20', 'YYYY-MM-DD'), 
-TO_DATE('1993-06-25', 'YYYY-MM-DD'), 'Portuguesa', 'Fernao Ferro');
-commit;
-
-INSERT INTO Pessoas (NIF,Nome, Salario, DataInicioC, DataFimC, DataNascimento, Nacionalidade, Localidade)
-VALUES (200845144,'Ant�nio Baltazar', 85000000, TO_DATE('2022-07-15', 'YYYY-MM-DD'), TO_DATE('2025-07-15', 'YYYY-MM-DD'),
-TO_DATE('1997-10-11', 'YYYY-MM-DD'), 'Portuguesa', 'Mirandela');
-commit;
-
-INSERT INTO Pessoas (NIF,Nome, Salario, DataInicioC, DataFimC, DataNascimento, Nacionalidade, Localidade)
-VALUES (224825103,'Benedito Pereira', 95000000, TO_DATE('2022-12-31', 'YYYY-MM-DD'), TO_DATE('2024-12-31', 'YYYY-MM-DD'),
-TO_DATE('1994-08-12', 'YYYY-MM-DD'), 'Portuguesa', 'Lisboa');
-commit;
-
-INSERT INTO Pessoas (NIF,Nome, Salario, DataInicioC, DataFimC, DataNascimento, Nacionalidade, Localidade)
-VALUES (204805103,'Joaquim Gon�alves', 99000000, TO_DATE('2020-12-20', 'YYYY-MM-DD'), TO_DATE('2024-12-20', 'YYYY-MM-DD'), 
-TO_DATE('2001-01-29', 'YYYY-MM-DD'), 'Portuguesa', 'Almada');
-commit;
-
-INSERT INTO Pessoas (NIF,Nome, Salario, DataInicioC, DataFimC, DataNascimento, Nacionalidade, Localidade)
-VALUES (206865113,'Gon�alo Ramos', 999000000, TO_DATE('2021-12-16', 'YYYY-MM-DD'), TO_DATE('2025-12-16', 'YYYY-MM-DD'),
-TO_DATE('1997-12-17', 'YYYY-MM-DD'), 'Portuguesa', 'Lisboa');
-commit;
-
-/*select * from pessoas;*/
- 
-/*JOGADOR*/
-
-INSERT INTO Jogador (NIF)
-VALUES (200800123);
-commit;
-select * from jogador;
-
-INSERT INTO Jogador (NIF)
-VALUES (220803192);
-commit;
-
-INSERT INTO Jogador (NIF)
-VALUES (220805128);
-commit;
-
-INSERT INTO Jogador (NIF)
-VALUES (209815158);
-commit;
-
-INSERT INTO Jogador (NIF)
-VALUES (225805900);
-commit;
-
-INSERT INTO Jogador (NIF)
-VALUES (200845144);
-commit;
-
-INSERT INTO Jogador (NIF)
-VALUES (224825103);
-commit;
-
-INSERT INTO Jogador (NIF)
-VALUES (204805103);
-commit;
-
-INSERT INTO Jogador (NIF)
-VALUES (206865113);
-commit;
-
-INSERT INTO Jogador (NIF)
-VALUES (234567891);
-commit;
-select * from jogador;
-/*TREINADOR*/
 
+Table TREINADORES dropped.
+
+
+Table JOGADOR dropped.
+
+
+Table POSICAO dropped.
+
+
+Table JOGA_POSICAO dropped.
+
+
+Table MORADA dropped.
+
+
+Table TIPOT dropped.
+
+
+Table JOGO dropped.
+
+
+Table TRANSFERENCIAS dropped.
+
+
+Table TRANSFERENCIA_EQUIPA dropped.
+
+
+Table CONVOCATORIA dropped.
+
+
+Table ESTADIO dropped.
+
+
+Table EQUIPAS dropped.
+
+
+Table ACOES dropped.
+
+
+Table TIPOACAO dropped.
+
+
+Sequence SEQ_ID dropped.
+
+
+Sequence SEQ_IDESTADIO dropped.
+
+
+Sequence SEQ_IDEQUIPA dropped.
+
+
+Sequence SEQ_IDPOS dropped.
+
+
+Sequence SEQ_IDACAO dropped.
+
+
+Error starting at line : 26 in command -
+DROP TRIGGER PosicaoPK
+Error report -
+ORA-04080: trigger 'POSICAOPK' não existe
+04080. 00000 -  "trigger '%s' does not exist"
+*Cause:    The TRIGGER name is invalid.
+*Action:   Check the trigger name.
+
+Error starting at line : 27 in command -
+DROP TRIGGER EquipaPK
+Error report -
+ORA-04080: trigger 'EQUIPAPK' não existe
+04080. 00000 -  "trigger '%s' does not exist"
+*Cause:    The TRIGGER name is invalid.
+*Action:   Check the trigger name.
+
+Error starting at line : 28 in command -
+DROP TRIGGER EstadioPK
+Error report -
+ORA-04080: trigger 'ESTADIOPK' não existe
+04080. 00000 -  "trigger '%s' does not exist"
+*Cause:    The TRIGGER name is invalid.
+*Action:   Check the trigger name.
+
+Error starting at line : 29 in command -
+DROP TRIGGER check_nif_before_insert_new_manager
+Error report -
+ORA-04080: trigger 'CHECK_NIF_BEFORE_INSERT_NEW_MANAGER' não existe
+04080. 00000 -  "trigger '%s' does not exist"
+*Cause:    The TRIGGER name is invalid.
+*Action:   Check the trigger name.
+
+Error starting at line : 30 in command -
+DROP TRIGGER check_nif_before_insert_new_player
+Error report -
+ORA-04080: trigger 'CHECK_NIF_BEFORE_INSERT_NEW_PLAYER' não existe
+04080. 00000 -  "trigger '%s' does not exist"
+*Cause:    The TRIGGER name is invalid.
+*Action:   Check the trigger name.
+
+Sequence SEQ_ID created.
+
+
+Sequence SEQ_IDESTADIO created.
+
+
+Sequence SEQ_IDEQUIPA created.
+
+
+Sequence SEQ_IDPOS created.
+
+
+Sequence SEQ_IDACAO created.
+
+
+Table MORADA created.
+
+
+Table PESSOAS created.
+
+
+Table TREINADORES created.
+
+
+Table JOGADOR created.
+
+
+Table POSICAO created.
+
+
+Table JOGA_POSICAO created.
+
+
+Table ESTADIO created.
+
+
+Table EQUIPAS created.
+
+
+Table JOGO created.
+
+
+Table CONVOCATORIA created.
+
+
+Table TIPOACAO created.
+
+
+Table ACOES created.
+
+
+Table TIPOT created.
+
+
+Table TRANSFERENCIAS created.
+
+
+Table TRANSFERENCIA_EQUIPA created.
+
+
+Trigger POSICAOPK compiled
+
+
+Trigger EQUIPAPK compiled
+
+
+Trigger ESTADIOPK compiled
+
+
+Trigger CHECK_NIF_BEFORE_INSERT_NEW_PLAYER compiled
+
+
+Trigger CHECK_NIF_BEFORE_INSERT_NEW_MANAGER compiled
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+LOCALIDADE                                                                                                                                                                                                                                                 PAIS                                                                                                                                                                                                                                                      
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Almada                                                                                                                                                                                                                                                     Portugal                                                                                                                                                                                                                                                  
+Fernao Ferro                                                                                                                                                                                                                                               Portugal                                                                                                                                                                                                                                                  
+Braga                                                                                                                                                                                                                                                      Portugal                                                                                                                                                                                                                                                  
+Seixal                                                                                                                                                                                                                                                     Portugal                                                                                                                                                                                                                                                  
+Amora                                                                                                                                                                                                                                                      Portugal                                                                                                                                                                                                                                                  
+Lisboa                                                                                                                                                                                                                                                     Portugal                                                                                                                                                                                                                                                  
+Porto                                                                                                                                                                                                                                                      Portugal                                                                                                                                                                                                                                                  
+Mirandela                                                                                                                                                                                                                                                  Portugal                                                                                                                                                                                                                                                  
+Algarve                                                                                                                                                                                                                                                    Portugal                                                                                                                                                                                                                                                  
+Saint Petersburg                                                                                                                                                                                                                                           Russia                                                                                                                                                                                                                                                    
+Faro                                                                                                                                                                                                                                                       Portugal                                                                                                                                                                                                                                                  
+
+LOCALIDADE                                                                                                                                                                                                                                                 PAIS                                                                                                                                                                                                                                                      
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Manchester                                                                                                                                                                                                                                                 Inglaterra                                                                                                                                                                                                                                                
+
+12 rows selected. 
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+       NIF NOME                                                                                                                                                                                                                                                          SALARIO DATAINIC DATAFIMC DATANASC NACIONALIDADE                                                                                                                                                                                                                                              LOCALIDADE                                                                                                                                                                                                                                                
+---------- ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- ---------- -------- -------- -------- ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ 234567890 Jorge Jesus                                                                                                                                                                                                                                                 300000000 23.01.01 23.12.31 54.07.24 Portuguesa                                                                                                                                                                                                                                                 Almada                                                                                                                                                                                                                                                    
+ 234567891 Pep Guardiola                                                                                                                                                                                                                                               300000000 23.01.01 23.12.31 71.01.18 Espanhola                                                                                                                                                                                                                                                  Manchester                                                                                                                                                                                                                                                
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+       NIF NOME                                                                                                                                                                                                                                                          SALARIO DATAINIC DATAFIMC DATANASC NACIONALIDADE                                                                                                                                                                                                                                              LOCALIDADE                                                                                                                                                                                                                                                
+---------- ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- ---------- -------- -------- -------- ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ 234567890 Jorge Jesus                                                                                                                                                                                                                                                 300000000 23.01.01 23.12.31 54.07.24 Portuguesa                                                                                                                                                                                                                                                 Almada                                                                                                                                                                                                                                                    
+ 234567891 Pep Guardiola                                                                                                                                                                                                                                               300000000 23.01.01 23.12.31 71.01.18 Espanhola                                                                                                                                                                                                                                                  Manchester                                                                                                                                                                                                                                                
+ 234567893 Cristiano Ronaldo                                                                                                                                                                                                                                          3000000000 23.01.01 23.12.31 85.02.05 Portuguesa                                                                                                                                                                                                                                                 Funchal                                                                                                                                                                                                                                                   
+ 200800123 Francisco Almeida                                                                                                                                                                                                                                            60000000 23.06.23 25.06.23 97.04.16 Portuguesa                                                                                                                                                                                                                                                 Seixal                                                                                                                                                                                                                                                    
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+       NIF
+----------
+ 200800123
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+       NIF
+----------
+ 200800123
+ 200845144
+ 204805103
+ 206865113
+ 209815158
+ 220803192
+ 220805128
+ 224825103
+ 225805900
+ 234567891
+
+10 rows selected. 
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+Error starting at line : 466 in command -
 INSERT INTO TREINADORES (NIF,CARGO)
-VALUES (234567890,'Principal');
-commit;
-
-INSERT INTO TREINADORES (NIF,CARGO)
-VALUES (234567891,'Adjunto');
-commit;
-
-
-/*SELECT * FROM JOGADOR;
-SELECT * FROM TREINADORES;
+VALUES (234567891,'Adjunto')
+Error report -
+ORA-20001: NIF already exists in Treinadores table.
+ORA-06512: na "BDG106.CHECK_NIF_BEFORE_INSERT_NEW_MANAGER", linha 9
+ORA-04088: erro durante a execução do trigger 'BDG106.CHECK_NIF_BEFORE_INSERT_NEW_MANAGER'
 
 
-select * from jogador 
-natural join pessoas;*/
-
-/*ESTADIOS*/
-
-INSERT INTO Estadio(NomeEstadio, Localidade)
-VALUES ('Estadio da Luz', 'Lisboa');
-commit;
-
-INSERT INTO Estadio(NomeEstadio, Localidade)
-VALUES ('Estádio José Alvalade', 'Lisboa');
-commit;
-
-INSERT INTO Estadio(NomeEstadio, Localidade)
-VALUES ('Estádio do Dragão', 'Porto');
-commit;
+Commit complete.
 
 
-/* Para reiniciar uma sequencia
-/*DELETE FROM Estadio where NomeEstadio = 'Estadio da Luz';
-ALTER SEQUENCE seq_idEstadio RESTART;*/
+1 row inserted.
 
 
-
-/*EQUIPA*/
-
-INSERT INTO Equipas (NomeEquipa, PosicaoTabela, EstadioID)
-VALUES ('Benfica', 1, 1);
-commit;
-
-INSERT INTO Equipas (NomeEquipa, PosicaoTabela, EstadioID)
-VALUES ('Sporting', 2 , 2);
-commit;
-
-INSERT INTO Equipas (NomeEquipa, PosicaoTabela, EstadioID)
-VALUES ('Porto', 3, 3);
-commit;
-
-/*Posicoes*/
-
-INSERT INTO Posicao(Descricao)
-VALUES ('Guarda Redes');
-commit;
-
-INSERT INTO Posicao(Descricao)
-VALUES ('Defesa Lateral Esquerdo');
-commit;
-
-INSERT INTO Posicao(Descricao)
-VALUES ('Defesa Lateral Direito');
-commit;
-
-INSERT INTO Posicao(Descricao)
-VALUES ('Defesa Central');
-commit;
-
-INSERT INTO Posicao(Descricao)
-VALUES ('Médio Defensivo');
-commit;
-
-INSERT INTO Posicao(Descricao)
-VALUES ('Médio Centro');
-commit;
-
-INSERT INTO Posicao(Descricao)
-VALUES ('Meia-atacante');
-commit;
-
-INSERT INTO Posicao(Descricao)
-VALUES ('Meio-campista Esquerdo');
-commit;
-
-INSERT INTO Posicao(Descricao)
-VALUES ('Meio-campista Direito');
-commit;
-
-INSERT INTO Posicao(Descricao)
-VALUES ('Falso 9');
-commit;
-
-INSERT INTO Posicao(Descricao)
-VALUES ('Extremo Esquerdo');
-commit;
-
-INSERT INTO Posicao(Descricao)
-VALUES ('Extremo Direito');
-commit;
-
-INSERT INTO Posicao(Descricao)
-VALUES ('Ponta de Lança');
-commit;
-
-/*Posicao do jogador*/
-/*so para testar se ta bom, ex do Ronaldo
-INSERT INTO Joga_Posicao(PosicaoID, NIF)
-VALUES('13', 234567891);
-commit;
-*/
-
-/*TipoAcoes*/
-
-INSERT INTO TipoAcao(TipoAcaoID, Descricao)
-VALUES(seq_idAcao.NEXTVAL, 'Golos');
-commit;
-
-INSERT INTO TipoAcao(TipoAcaoID, Descricao)
-VALUES(seq_idAcao.NEXTVAL, 'Assistencias');
-commit;
-
-INSERT INTO TipoAcao(TipoAcaoID, Descricao)
-VALUES(seq_idAcao.NEXTVAL, 'Remate');
-commit;
-
-INSERT INTO TipoAcao(TipoAcaoID, Descricao)
-VALUES(seq_idAcao.NEXTVAL, 'Remate à baliza');
-commit;
+Commit complete.
 
 
-INSERT INTO TipoAcao(TipoAcaoID, Descricao)
-VALUES(seq_idAcao.NEXTVAL, 'Passes');
-commit;
-
-INSERT INTO TipoAcao(TipoAcaoID, Descricao)
-VALUES(seq_idAcao.NEXTVAL, 'Faltas');
-commit;
-
-INSERT INTO TipoAcao(TipoAcaoID, Descricao)
-VALUES(seq_idAcao.NEXTVAL, 'Cartão Amarelo');
-commit;
-
-INSERT INTO TipoAcao(TipoAcaoID, Descricao)
-VALUES(seq_idAcao.NEXTVAL, 'Cartão Vermelho');
-commit;
-
-INSERT INTO TipoAcao(TipoAcaoID, Descricao)
-VALUES(seq_idAcao.NEXTVAL, 'Foras de jogo');
-commit;
-
-INSERT INTO TipoAcao(TipoAcaoID, Descricao)
-VALUES(seq_idAcao.NEXTVAL, 'Cantos');
-commit;
-
-INSERT INTO TipoAcao(TipoAcaoID, Descricao)
-VALUES(seq_idAcao.NEXTVAL, 'Posse de Bola');
-commit;
-/*Jogo*/
-INSERT INTO JOGO (Hora, DataJogo,Resultado,Casa ,EquipaID)
-VALUES (2000,'2023-05-20','10-0',1,1);
-COMMIT;
-/*Convocatoria*/
-/*Exemplo para ver se funciona, Ronaldo jogou 60 minutos */
-INSERT INTO Convocatoria(Hora, DataJogo, EquipaID, NIF, MinutosJogados)
-VALUES(2000, '2023-05-20', 1, 200800123, 60);
-commit;
-
-/*Acoes*/
-/*Exemplo para ver se funciona, Ronaldo marcou golo pelo benfica no minuto 32*/
-
-INSERT INTO Acoes(Hora, DataJogo, EquipaID, NIF, Minuto, TipoAcaoID)
-VALUES(2000, '2023-05-20', 1, 200800123, 32, 1);
-commit;
+1 row inserted.
 
 
-SELECT * FROM JOGADOR;
-SELECT * FROM EQUIPAS;
-SELECT * FROM JOGO;
-SELECT * FROM CONVOCATORIA;
-SELECT * FROM Acoes;
-SELECT * FROM POSICAO;
-SELECT * FROM ESTADIO;
-/*
-TRIGGER:
--SEMPRE QUE INSERIR UMA ACAO VERIFICAR SE O MINUTO DA ACAO É INFERIOR OU IGUAL AOS MINUTOS JOGADOS PELO JOGADOR
-*/
+Commit complete.
 
 
+1 row inserted.
 
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+1 row inserted.
+
+
+Commit complete.
+
+
+       NIF
+----------
+ 200800123
+ 200845144
+ 204805103
+ 206865113
+ 209815158
+ 220803192
+ 220805128
+ 224825103
+ 225805900
+ 234567891
+
+10 rows selected. 
+
+
+       NIF CARGO                                                                                                                                                                                                                                                     
+---------- ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ 234567890 Principal                                                                                                                                                                                                                                                 
+
+
+  EQUIPAID NOMEEQUIPA                                                                                                                                                                                                                                                 POSICAOTABELA  ESTADIOID
+---------- ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- ------------- ----------
+         1 Benfica                                                                                                                                                                                                                                                                1          1
+         2 Sporting                                                                                                                                                                                                                                                               2          2
+         3 Porto                                                                                                                                                                                                                                                                  3          3
+
+
+      HORA DATAJOGO RESULTADO        CASA   EQUIPAID
+---------- -------- ---------- ---------- ----------
+      2000 23.05.20 10-0                1          1
+
+
+      HORA DATAJOGO   EQUIPAID        NIF MINUTOSJOGADOS
+---------- -------- ---------- ---------- --------------
+      2000 23.05.20          1  200800123             60
+
+
+      HORA DATAJOGO   EQUIPAID        NIF     MINUTO TIPOACAOID
+---------- -------- ---------- ---------- ---------- ----------
+      2000 23.05.20          1  200800123         32          1
+
+
+ POSICAOID DESCRICAO                                                                                                                                                                                                                                                 
+---------- ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+         1 Guarda Redes                                                                                                                                                                                                                                              
+         2 Defesa Lateral Esquerdo                                                                                                                                                                                                                                   
+         3 Defesa Lateral Direito                                                                                                                                                                                                                                    
+         4 Defesa Central                                                                                                                                                                                                                                            
+         5 Médio Defensivo                                                                                                                                                                                                                                           
+         6 Médio Centro                                                                                                                                                                                                                                              
+         7 Meia-atacante                                                                                                                                                                                                                                             
+         8 Meio-campista Esquerdo                                                                                                                                                                                                                                    
+         9 Meio-campista Direito                                                                                                                                                                                                                                     
+        10 Falso 9                                                                                                                                                                                                                                                   
+        11 Extremo Esquerdo                                                                                                                                                                                                                                          
+
+ POSICAOID DESCRICAO                                                                                                                                                                                                                                                 
+---------- ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+        12 Extremo Direito                                                                                                                                                                                                                                           
+        13 Ponta de Lança                                                                                                                                                                                                                                            
+
+13 rows selected. 
+
+
+ ESTADIOID NOMEESTADIO                                                                                                                                                                                                                                                LOCALIDADE                                                                                                                                                                                                                                                
+---------- ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+         1 Estadio da Luz                                                                                                                                                                                                                                             Lisboa                                                                                                                                                                                                                                                    
+         2 Estádio José Alvalade                                                                                                                                                                                                                                      Lisboa                                                                                                                                                                                                                                                    
+         3 Estádio do Dragão                                                                                                                                                                                                                                          Porto                                                                                                                                                                                                                                                     
+
+
+       NIF NOME                                                                                                                                                                                                                                                          SALARIO DATAINIC DATAFIMC DATANASC NACIONALIDADE                                                                                                                                                                                                                                              LOCALIDADE                                                                                                                                                                                                                                                
+---------- ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- ---------- -------- -------- -------- ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ 234567891 Pep Guardiola                                                                                                                                                                                                                                               300000000 23.01.01 23.12.31 71.01.18 Espanhola                                                                                                                                                                                                                                                  Manchester                                                                                                                                                                                                                                                
+ 200800123 Francisco Almeida                                                                                                                                                                                                                                            60000000 23.06.23 25.06.23 97.04.16 Portuguesa                                                                                                                                                                                                                                                 Seixal                                                                                                                                                                                                                                                    
+ 220803192 Tiago Monteiro                                                                                                                                                                                                                                               75000000 21.09.16 25.09.16 96.03.20 Portuguesa                                                                                                                                                                                                                                                 Amora                                                                                                                                                                                                                                                     
+ 220805128 Nuno Fernandes                                                                                                                                                                                                                                               45000000 22.07.06 26.07.06 00.01.02 Portuguesa                                                                                                                                                                                                                                                 Braga                                                                                                                                                                                                                                                     
+ 209815158 S�rgio Fernandes                                                                                                                                                                                                                                             65000000 21.09.04 25.09.04 96.04.08 Portuguesa                                                                                                                                                                                                                                                 Lisboa                                                                                                                                                                                                                                                    
+ 225805900 Augusto Moreira                                                                                                                                                                                                                                              15000000 23.09.20 27.09.20 93.06.25 Portuguesa                                                                                                                                                                                                                                                 Fernao Ferro                                                                                                                                                                                                                                              
+ 200845144 Ant�nio Baltazar                                                                                                                                                                                                                                             85000000 22.07.15 25.07.15 97.10.11 Portuguesa                                                                                                                                                                                                                                                 Mirandela                                                                                                                                                                                                                                                 
+ 224825103 Benedito Pereira                                                                                                                                                                                                                                             95000000 22.12.31 24.12.31 94.08.12 Portuguesa                                                                                                                                                                                                                                                 Lisboa                                                                                                                                                                                                                                                    
+ 204805103 Joaquim Gon�alves                                                                                                                                                                                                                                            99000000 20.12.20 24.12.20 01.01.29 Portuguesa                                                                                                                                                                                                                                                 Almada                                                                                                                                                                                                                                                    
+ 206865113 Gon�alo Ramos                                                                                                                                                                                                                                               999000000 21.12.16 25.12.16 97.12.17 Portuguesa                                                                                                                                                                                                                                                 Lisboa                                                                                                                                                                                                                                                    
+
+10 rows selected. 
+
+
+       NIF NOME                                                                                                                                                                                                                                                          SALARIO DATAINIC DATAFIMC DATANASC NACIONALIDADE                                                                                                                                                                                                                                              LOCALIDADE                                                                                                                                                                                                                                                 CARGO                                                                                                                                                                                                                                                     
+---------- ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- ---------- -------- -------- -------- ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ 234567890 Jorge Jesus                                                                                                                                                                                                                                                 300000000 23.01.01 23.12.31 54.07.24 Portuguesa                                                                                                                                                                                                                                                 Almada                                                                                                                                                                                                                                                     Principal                                                                                                                                                                                                                                                 
 
