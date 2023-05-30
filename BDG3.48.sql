@@ -1,4 +1,4 @@
-/*3.46 SEM TRIGGERS*/
+/*3.48 SEM TRIGGERS*/
 
 DROP TABLE Pessoas cascade constraints;
 DROP TABLE Treinadores cascade constraints;
